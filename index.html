@@ -534,8 +534,36 @@
       .pull-quote { margin: 40px 0; padding: 30px; }
       .nav-links { display: none; }
       .nav-right { gap: 12px; }
-      .translate-box { min-width: 170px; padding: 8px 10px; }
-      .language-shortcuts { display: none; }
+
+      /* Mobile : on cache le menu Google classique qui bugue souvent,
+         et on garde les boutons rapides FR / EN / ES / RU / CN / AR. */
+      .translate-box {
+        min-width: 0;
+        width: min(92vw, 430px);
+        padding: 10px 12px;
+      }
+
+      #google_translate_element {
+        position: absolute;
+        left: -9999px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
+
+      .language-shortcuts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 0;
+      }
+
+      .language-shortcuts button {
+        padding: 7px 11px;
+        font-size: 0.78rem;
+      }
+
       .print-btn { bottom: 20px; right: 20px; padding: 12px 18px; font-size: 0.7rem; }
     }
 
@@ -1184,21 +1212,43 @@
 
   // GOOGLE TRANSLATE - boutons rapides
   function translatePage(lang) {
-    if (lang === 'fr') {
+    const host = location.hostname;
+
+    function setCookie(value) {
+      document.cookie = 'googtrans=' + value + '; path=/; max-age=31536000; SameSite=Lax';
+      if (host && host !== 'localhost' && host !== '127.0.0.1') {
+        document.cookie = 'googtrans=' + value + '; path=/; domain=' + host + '; max-age=31536000; SameSite=Lax';
+        document.cookie = 'googtrans=' + value + '; path=/; domain=.' + host + '; max-age=31536000; SameSite=Lax';
+      }
+    }
+
+    function clearCookie() {
       document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + location.hostname + ';';
+      if (host && host !== 'localhost' && host !== '127.0.0.1') {
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + host + ';';
+        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + host + ';';
+      }
+    }
+
+    if (lang === 'fr') {
+      clearCookie();
       location.reload();
       return;
     }
 
+    // Sur ordinateur, le menu Google peut fonctionner directement.
+    // Sur mobile, on force aussi le cookie avant de relancer si nécessaire.
     const combo = document.querySelector('.goog-te-combo');
     if (combo) {
       combo.value = lang;
       combo.dispatchEvent(new Event('change'));
+      setTimeout(() => {
+        setCookie('/fr/' + lang);
+      }, 250);
       return;
     }
 
-    document.cookie = 'googtrans=/fr/' + lang + '; path=/;';
+    setCookie('/fr/' + lang);
     location.reload();
   }
 
